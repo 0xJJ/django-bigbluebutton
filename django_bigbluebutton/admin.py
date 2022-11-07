@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
-from django.urls import reverse, re_path, path
+from django.urls import reverse, path
 from django.template.response import TemplateResponse
 
 from django.utils.html import format_html
@@ -96,18 +96,18 @@ class MeetingAdmin(admin.ModelAdmin):
         """ All extra URLs are defined here."""
         urls = super().get_urls()
         custom_urls = [
-            re_path(
-                r'^(?P<meeting_id>.+)/join/$',
+            path(
+                '<path:meeting_id>/join/',
                 self.admin_site.admin_view(self.join_meeting_action),
                 name='meeting-join',
             ),
-            re_path(
-                r'^(?P<meeting_id>.+)/end/$',
+            path(
+                '<path:meeting_id>/end/',
                 self.admin_site.admin_view(self.end_meeting_action),
                 name='meeting-end',
             ),
-            re_path(
-                r'^(?P<meeting_id>.+)/create-link/$',
+            path(
+                '<path:meeting_id>/create-link/',
                 self.admin_site.admin_view(self.create_meeting_link_action),
                 name='meeting-create-link',
             ),
@@ -115,6 +115,9 @@ class MeetingAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    @admin.display(
+        description='Actions'
+    )
     def meeting_actions(self, obj):
         """ This actions will be placed in front of each row of table list.
         For example here we registered two buttons:
@@ -141,8 +144,6 @@ class MeetingAdmin(admin.ModelAdmin):
             )
         )
 
-    meeting_actions.short_description = 'Actions'
-    meeting_actions.allow_tags = True
 
     def changelist_view(self, request, extra_context=None):
         if 'action' in request.POST and request.POST['action'] == 'update_running_meetings':
@@ -153,13 +154,15 @@ class MeetingAdmin(admin.ModelAdmin):
                 request._set_post(post)
         return super(MeetingAdmin, self).changelist_view(request, extra_context)
 
+    @admin.display(
+        description="Refresh Meetings"
+    )
     def update_running_meetings(self, request, *args, **kwargs):
         """ Will get list of running meetings from bigbluebutton,
         And update states of Meetings objects in database. """
         Meeting.update_running_meetings()
         return HttpResponseRedirect(".")
 
-    update_running_meetings.short_description = "Refresh Meetings"
 
 
 admin.site.register(MeetingLog)
